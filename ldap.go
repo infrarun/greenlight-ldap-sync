@@ -142,7 +142,7 @@ func ldapUserSearch(env map[string]string, conn *ldap.Conn, user string) (ldapAt
 		return
 	}
 
-	// https://docs.bigbluebutton.org/greenlight/gl-config.html#ldap-auth
+	// https://docs.bigbluebutton.org/greenlight/gl-config.html#ldap-auth LDAP_ATTRIBUTE_MAPPING table
 	greenlightMap := map[string]string{
 		"uid":      "social_uid",
 		"name":     "name",
@@ -171,7 +171,7 @@ func ldapUserSearch(env map[string]string, conn *ldap.Conn, user string) (ldapAt
 			log.WithFields(log.Fields{
 				"user":                   user,
 				"intermediate attribute": attrMapK,
-			}).Debug("Cannot map LDAP attribute to intermediate attribute")
+			}).Debug("Cannot find LDAP attribute for intermediate attribute mapping")
 			continue
 		}
 
@@ -182,7 +182,6 @@ func ldapUserSearch(env map[string]string, conn *ldap.Conn, user string) (ldapAt
 			log.WithFields(log.Fields{
 				"user":                   user,
 				"intermediate attribute": attrMapK,
-				"LDAP attribute":         attrValue,
 			}).Debug("Cannot map intermediate attribute to Greenlight attribute")
 		}
 	}
