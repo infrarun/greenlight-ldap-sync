@@ -1,25 +1,30 @@
+// SPDX-FileCopyrightText: 2021 Alvar Penning
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package main
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
 // sqlOpen establishes a connection to the configured PostgreSQL database.
-func sqlOpen(env map[string]string) (db *sql.DB, err error) {
-	if env["DB_ADAPTER"] != "postgresql" {
+func sqlOpen() (db *sql.DB, err error) {
+	if os.Getenv("DB_ADAPTER") != "postgresql" {
 		err = fmt.Errorf("postgresql is the only supported DB_ADAPTER")
 		return
 	}
 
 	// Greenlight's PostgreSQL has no SSL enabled as it runs within a container network.
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		env["DB_USERNAME"], env["DB_PASSWORD"],
-		env["DB_HOST"], env["PORT"],
-		env["DB_NAME"])
+		os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"), os.Getenv("PORT"),
+		os.Getenv("DB_NAME"))
 
 	db, err = sql.Open("postgres", connStr)
 	return

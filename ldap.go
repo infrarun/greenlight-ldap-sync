@@ -1,8 +1,13 @@
+// SPDX-FileCopyrightText: 2021 Alvar Penning
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package main
 
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -11,11 +16,11 @@ import (
 )
 
 // ldapDial establishes a connection to the configured LDAP server.
-func ldapDial(env map[string]string) (conn *ldap.Conn, err error) {
-	addr := fmt.Sprintf("%s:%s", env["LDAP_SERVER"], env["LDAP_PORT"])
+func ldapDial() (conn *ldap.Conn, err error) {
+	addr := fmt.Sprintf("%s:%s", os.Getenv("LDAP_SERVER"), os.Getenv("LDAP_PORT"))
 
 	// https://github.com/bigbluebutton/greenlight/blob/release-2.8.5/app/controllers/sessions_controller.rb#L135-L140
-	switch env["LDAP_METHOD"] {
+	switch os.Getenv("LDAP_METHOD") {
 	case "ssl":
 		// TLS
 		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{})
@@ -37,10 +42,10 @@ func ldapDial(env map[string]string) (conn *ldap.Conn, err error) {
 	}
 
 	// https://github.com/blindsidenetworks/bn-ldap-authentication/blob/0.1.4/lib/bn-ldap-authentication.rb#L15-L32
-	switch env["LDAP_AUTH"] {
+	switch os.Getenv("LDAP_AUTH") {
 	case "simple":
 		// Simple Authentication, Bind DN
-		err = conn.Bind(env["LDAP_BIND_DN"], env["LDAP_PASSWORD"])
+		err = conn.Bind(os.Getenv("LDAP_BIND_DN"), os.Getenv("LDAP_PASSWORD"))
 
 	case "user":
 		// Simple Authentication
@@ -52,7 +57,7 @@ func ldapDial(env map[string]string) (conn *ldap.Conn, err error) {
 		err = conn.UnauthenticatedBind("anonymous")
 
 	default:
-		err = fmt.Errorf("%s is an unsupported LDAP_AUTH", env["LDAP_AUTH"])
+		err = fmt.Errorf("%s is an unsupported LDAP_AUTH", os.Getenv("LDAP_AUTH"))
 	}
 
 	return
@@ -64,7 +69,7 @@ func ldapDial(env map[string]string) (conn *ldap.Conn, err error) {
 // map of predefined values merged with LDAP_ATTRIBUTE_MAPPING is used to map
 // LDAP attributes to an intermediate form before being mapped to Greenlight's
 // SQL columns.
-func ldapAttrMapping(env map[string]string) (attrMap map[string][]string, err error) {
+func ldapAttrMapping() (attrMap map[string][]string, err error) {
 	// https://github.com/blindsidenetworks/bn-ldap-authentication/blob/0.1.4/lib/bn-ldap-authentication.rb#L4-L12
 	attrMap = map[string][]string{
 		"uid":        []string{"dn"},
@@ -77,7 +82,7 @@ func ldapAttrMapping(env map[string]string) (attrMap map[string][]string, err er
 	}
 
 	// https://github.com/blindsidenetworks/bn-ldap-authentication/blob/0.1.4/lib/bn-ldap-authentication.rb#L80-L96
-	mappings := strings.Split(env["LDAP_ATTRIBUTE_MAPPING"], ";")
+	mappings := strings.Split(os.Getenv("LDAP_ATTRIBUTE_MAPPING"), ";")
 	for _, mapping := range mappings {
 		if mapping == "" {
 			continue
@@ -118,17 +123,17 @@ func ldapAttrFlatten(attrMap map[string][]string) (ldapAttrs []string) {
 }
 
 // ldapUserSearch returns a map of this user's attributes based on the .env file.
-func ldapUserSearch(env map[string]string, conn *ldap.Conn, user string) (ldapAttrs map[string]string, err error) {
-	attrMap, err := ldapAttrMapping(env)
+func ldapUserSearch(conn *ldap.Conn, user string) (ldapAttrs map[string]string, err error) {
+	attrMap, err := ldapAttrMapping()
 	if err != nil {
 		return
 	}
 
 	searchReq := ldap.NewSearchRequest(
-		env["LDAP_BASE"],
+		os.Getenv("LDAP_BASE"),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0,
 		false,
-		fmt.Sprintf("(&(%s=%s)%s)", env["LDAP_UID"], user, env["LDAP_FILTER"]),
+		fmt.Sprintf("(&(%s=%s)%s)", os.Getenv("LDAP_UID"), user, os.Getenv("LDAP_FILTER")),
 		ldapAttrFlatten(attrMap),
 		nil)
 

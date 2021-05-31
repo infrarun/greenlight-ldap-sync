@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Alvar Penning
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package main
 
 import (
@@ -7,8 +11,21 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+)
 
-	"github.com/joho/godotenv"
+const (
+	// EnvDebug is the SYNC_DEBUG environment variable.
+	//
+	// If SYNC_DEBUG is set, the verbose debug log level will be used. This will
+	// log sensitive data.
+	EnvDebug = "SYNC_DEBUG"
+
+	// EnvInterval is the SYNC_INTERVAL environment variable.
+	//
+	// If SYNC_INTERVAL is set, scheduled syncs will be performed. The variables
+	// value needs to be a valid Go time.Duration string:
+	// <https://golang.org/pkg/time/#ParseDuration>
+	EnvInterval = "SYNC_INTERVAL"
 )
 
 // syncAction performs a single LDAP to PostgreSQL sync.
@@ -21,15 +38,7 @@ func syncAction() {
 		log.WithField("time", endTime.Sub(startTime)).Info("Finished LDAP sync")
 	}()
 
-	env, err := godotenv.Read()
-	if err != nil {
-		log.WithError(err).Error("Cannot read the .env file")
-		return
-	}
-
-	log.WithField("env", env).Debug("Read .env")
-
-	db, err := sqlOpen(env)
+	db, err := sqlOpen()
 	if err != nil {
 		log.WithError(err).Error("Cannot establish database connection")
 		return
@@ -43,7 +52,7 @@ func syncAction() {
 	}
 	log.WithField("amount", len(users)).Debug("Fetched users from SQL")
 
-	ldap, err := ldapDial(env)
+	ldap, err := ldapDial()
 	if err != nil {
 		log.WithError(err).Error("Cannot establish LDAP connection")
 		return
@@ -52,7 +61,7 @@ func syncAction() {
 
 	var updateUserAttrs []map[string]string
 	for user, userAttrSql := range users {
-		userAttrLdap, err := ldapUserSearch(env, ldap, user)
+		userAttrLdap, err := ldapUserSearch(ldap, user)
 		if err != nil {
 			log.WithField("user", user).WithError(err).Error("Failed to query LDAP user")
 			continue
@@ -94,7 +103,7 @@ func syncAction() {
 	}
 }
 
-// syncInterval performs scheduled syncs based on the INTERVAL environment variable.
+// syncInterval performs scheduled syncs based on the EnvInterval environment variable.
 func syncInterval(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -121,17 +130,17 @@ func main() {
 		PadLevelText:           true,
 	})
 
-	if _, ok := os.LookupEnv("DEBUG"); ok {
+	if _, ok := os.LookupEnv(EnvDebug); ok {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	var interval time.Duration
-	if intervalStr, ok := os.LookupEnv("INTERVAL"); ok {
+	if intervalStr, ok := os.LookupEnv(EnvInterval); ok {
 		intervalShadow, err := time.ParseDuration(intervalStr)
 		if err != nil {
-			log.WithError(err).Fatal("Cannot parse INTERVAL as a Go time.Duration")
+			log.WithError(err).Fatalf("Cannot parse %s as a Go time.Duration", EnvInterval)
 		} else if intervalShadow <= 0 {
-			log.WithField("interval", intervalStr).Fatal("Negative INTERVAL value")
+			log.WithField("interval", intervalStr).Fatalf("Negative %s value", EnvInterval)
 		}
 		interval = intervalShadow
 	}

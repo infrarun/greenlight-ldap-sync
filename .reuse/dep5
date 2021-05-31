@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: greenlight-ldap-sync
+Upstream-Contact: Alvar Penning <post@0x21.biz>
+Source: https://github.com/oxzi/greenlight-ldap-sync
+
+Files: go.mod go.sum
+Copyright: Alvar Penning <post@0x21.biz>
+License: GPL-3.0-or-later
+Comment: Awaiting Go module support, https://github.com/fsfe/reuse-tool/pull/298
