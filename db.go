@@ -69,10 +69,6 @@ func sqlFetchUsers(db *sql.DB) (users map[string]map[string]string, err error) {
 
 // sqlUpdateUser updates the users table for all passed user attribute maps.
 func sqlUpdateUser(db *sql.DB, userAttrs []map[string]string) (err error) {
-	if len(userAttrs) == 0 {
-		return
-	}
-
 	tx, err := db.BeginTx(context.Background(), nil)
 	if err != nil {
 		return
