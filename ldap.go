@@ -53,8 +53,8 @@ func ldapDial() (conn *ldap.Conn, err error) {
 
 	case "anonymous":
 		// Anonymous Authentication
-		// This case was not tested yet!
-		err = conn.UnauthenticatedBind("anonymous")
+		// https://github.com/ruby-ldap/ruby-net-ldap/blob/v0.17.0/lib/net/ldap/auth_adapter/simple.rb#L8-L12
+		err = conn.UnauthenticatedBind("")
 
 	default:
 		err = fmt.Errorf("%s is an unsupported LDAP_AUTH", os.Getenv("LDAP_AUTH"))
