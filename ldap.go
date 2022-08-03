@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -23,7 +24,15 @@ func ldapDial() (conn *ldap.Conn, err error) {
 	switch os.Getenv("LDAP_METHOD") {
 	case "ssl":
 		// TLS
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{})
+		tls_no_verify := false
+		tls_no_verify, err = strconv.ParseBool(os.Getenv("LDAP_TLS_NO_VERIFY"))
+		if err != nil {
+			return
+		}
+		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: tls_no_verify})
+		if err != nil {
+			return
+		}
 
 	case "tls":
 		// STARTTLS
@@ -32,6 +41,9 @@ func ldapDial() (conn *ldap.Conn, err error) {
 			return
 		}
 		err = conn.StartTLS(&tls.Config{})
+		if err != nil {
+			return
+		}
 
 	default:
 		// No Encryption
