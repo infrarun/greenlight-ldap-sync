@@ -41,7 +41,7 @@ The installation is done by adding this repository to the existing Greenlight in
 cd /opt/greenlight
 
 # Clone this repository within your greenlight directory
-git clone https://github.com/oxzi/greenlight-ldap-sync.git
+git clone https://github.com/infrarun/greenlight-ldap-sync.git
 ```
 
 Edit Greenlight's `docker-compose.yml` file and append a new `service` to the file.
