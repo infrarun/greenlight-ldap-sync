@@ -37,14 +37,12 @@ func sqlFetchUsers(db *sql.DB) (users map[string]map[string]string, err error) {
 	rows, err := db.Query(`
 		SELECT
 			name,
-			username,
 			email,
-			social_uid,
-			image
+			external_id
 		FROM
 			users
 		WHERE
-			provider = 'ldap'
+			provider = 'greenlight'
 	`)
 	if err != nil {
 		return
@@ -54,19 +52,17 @@ func sqlFetchUsers(db *sql.DB) (users map[string]map[string]string, err error) {
 	users = make(map[string]map[string]string)
 
 	for rows.Next() {
-		var name, username, email, socialUid, image string
-		if err = rows.Scan(&name, &username, &email, &socialUid, &image); err != nil {
+		var name, email, externalId string
+		if err = rows.Scan(&name, &email, &externalId); err != nil {
 			return
 		}
 
 		userMap := map[string]string{
-			"name":       name,
-			"username":   username,
-			"email":      email,
-			"social_uid": socialUid,
-			"image":      image,
+			"name":         name,
+			"email":        email,
+			"external_id":  externalId,
 		}
-		users[socialUid] = userMap
+		users[externalId] = userMap
 	}
 
 	return
@@ -89,12 +85,10 @@ func sqlUpdateUser(db *sql.DB, userAttrs []map[string]string) (err error) {
 			users
 		SET
 			name = $1,
-			username = $2,
-			email = $3,
-			image = $4,
+			email = $2,
 			updated_at = NOW()
 		WHERE
-			social_uid = $5
+			external_id = $3
 	`)
 	if err != nil {
 		return
@@ -102,8 +96,7 @@ func sqlUpdateUser(db *sql.DB, userAttrs []map[string]string) (err error) {
 	defer stmt.Close()
 
 	for _, userAttr := range userAttrs {
-		_, err = stmt.Exec(userAttr["name"], userAttr["username"],
-			userAttr["email"], userAttr["image"], userAttr["social_uid"])
+		_, err = stmt.Exec(userAttr["name"], userAttr["email"], userAttr["external_id"])
 		if err != nil {
 			return
 		}
