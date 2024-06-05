@@ -29,14 +29,14 @@ func ldapDial() (conn *ldap.Conn, err error) {
 		if err != nil {
 			return
 		}
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: tls_no_verify})
+		conn, err = ldap.DialURL(fmt.Sprintf("ldaps://%s", addr), ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: tls_no_verify}))
 		if err != nil {
 			return
 		}
 
 	case "tls":
 		// STARTTLS
-		conn, err = ldap.Dial("tcp", addr)
+		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", addr))
 		if err != nil {
 			return
 		}
@@ -47,7 +47,7 @@ func ldapDial() (conn *ldap.Conn, err error) {
 
 	default:
 		// No Encryption
-		conn, err = ldap.Dial("tcp", addr)
+		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", addr))
 	}
 	if err != nil {
 		return
