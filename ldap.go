@@ -29,14 +29,14 @@ func ldapDial() (conn *ldap.Conn, err error) {
 		if err != nil {
 			return
 		}
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: tls_no_verify})
+		conn, err = ldap.DialURL(fmt.Sprintf("ldaps://%s", addr), ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: tls_no_verify}))
 		if err != nil {
 			return
 		}
 
 	case "tls":
 		// STARTTLS
-		conn, err = ldap.Dial("tcp", addr)
+		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", addr))
 		if err != nil {
 			return
 		}
@@ -47,7 +47,7 @@ func ldapDial() (conn *ldap.Conn, err error) {
 
 	default:
 		// No Encryption
-		conn, err = ldap.Dial("tcp", addr)
+		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", addr))
 	}
 	if err != nil {
 		return
@@ -86,11 +86,7 @@ func ldapAttrMapping() (attrMap map[string][]string, err error) {
 	attrMap = map[string][]string{
 		"uid":        []string{"dn"},
 		"name":       []string{"cn", "displayName"},
-		"first_name": []string{"givenName"},
-		"last_name":  []string{"sn"},
 		"email":      []string{"mail", "email", "userPrincipalName"},
-		"nickname":   []string{"uid", "userid", "sAMAccountName"},
-		"image":      []string{"jpegPhoto"},
 	}
 
 	// https://github.com/blindsidenetworks/bn-ldap-authentication/blob/0.1.4/lib/bn-ldap-authentication.rb#L80-L96
@@ -141,11 +137,15 @@ func ldapUserSearch(conn *ldap.Conn, user string) (ldapAttrs map[string]string, 
 		return
 	}
 
+	// For some reason, Greenlight3 stores the complete DN in external_id => we must extract the CN.
+	// This is ugly and effectively hard-codes LDAP_UID=cn
+	// The problem should probably be fixed in Greenlight3. After that this workaround can be removed.
+	cn := strings.TrimPrefix(strings.Split(user, ",")[0], "cn=")
 	searchReq := ldap.NewSearchRequest(
 		os.Getenv("LDAP_BASE"),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0,
 		false,
-		fmt.Sprintf("(&(%s=%s)%s)", os.Getenv("LDAP_UID"), user, os.Getenv("LDAP_FILTER")),
+		fmt.Sprintf("(&(%s=%s)%s)", os.Getenv("LDAP_UID"), cn, os.Getenv("LDAP_FILTER")),
 		ldapAttrFlatten(attrMap),
 		nil)
 
@@ -161,11 +161,9 @@ func ldapUserSearch(conn *ldap.Conn, user string) (ldapAttrs map[string]string, 
 
 	// https://docs.bigbluebutton.org/greenlight/gl-config.html#ldap-auth LDAP_ATTRIBUTE_MAPPING table
 	greenlightMap := map[string]string{
-		"uid":      "social_uid",
+		"uid":      "external_id",
 		"name":     "name",
 		"email":    "email",
-		"nickname": "username",
-		"image":    "image",
 	}
 
 	// Create map with key: LDAP key -> intermediate key -> Greenlight key
@@ -183,10 +181,10 @@ func ldapUserSearch(conn *ldap.Conn, user string) (ldapAttrs map[string]string, 
 			}
 		}
 
-		// Ignore unset attrMap keys, e.g., image resp. jpegPhoto
+		// Ignore unset attrMap keys
 		if attrValue == "" {
 			log.WithFields(log.Fields{
-				"user":                   user,
+				"cn":                     cn,
 				"intermediate attribute": attrMapK,
 			}).Debug("Cannot find LDAP attribute for intermediate attribute mapping")
 			continue
@@ -197,10 +195,14 @@ func ldapUserSearch(conn *ldap.Conn, user string) (ldapAttrs map[string]string, 
 			ldapAttrs[dbKey] = attrValue
 		} else {
 			log.WithFields(log.Fields{
-				"user":                   user,
+				"cn":                     cn,
 				"intermediate attribute": attrMapK,
 			}).Debug("Cannot map intermediate attribute to Greenlight attribute")
 		}
+	}
+
+	if _, ok := ldapAttrs[greenlightMap["uid"]]; !ok {
+		ldapAttrs[greenlightMap["uid"]] = user
 	}
 
 	return
