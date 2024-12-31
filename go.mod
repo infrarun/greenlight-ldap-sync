@@ -3,7 +3,7 @@ module github.com/danimo/greenlight-ldap-sync
 go 1.22
 
 require (
-	github.com/go-ldap/ldap/v3 v3.4.9
+	github.com/go-ldap/ldap/v3 v3.4.10
 	github.com/lib/pq v1.10.9
 	github.com/sirupsen/logrus v1.9.3
 )
