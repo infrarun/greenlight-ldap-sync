@@ -10,7 +10,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -tags netgo -o /greenlight-ldap-sync
 
 
-FROM alpine:3.21
+FROM alpine:3.22
 
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /greenlight-ldap-sync /bin/greenlight-ldap-sync
