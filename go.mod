@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.13
-	github.com/lib/pq v1.11.2
+	github.com/lib/pq v1.12.0
 	github.com/sirupsen/logrus v1.9.4
 )
 
