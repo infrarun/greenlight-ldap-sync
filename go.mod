@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/lib/pq v1.12.3
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 )
 
 require (
