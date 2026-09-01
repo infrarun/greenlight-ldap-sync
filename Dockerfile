@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-FROM golang:1.26 AS builder
+FROM golang:1.27 AS builder
 
 WORKDIR /go/src/greenlight-ldap-sync
 COPY . .
